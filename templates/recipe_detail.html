@@ -6,7 +6,7 @@
 									<header class="main">
 										<h1>{{ recipe.title }}</h1>
 									</header>
-									<span class="image main"><img src="{% static '/images/food-blog.jpg' %}" style="width:1300px; height:auto;" alt="" /></span>
+									<span class="image main"><img src="{{ recipe.get_image }}" style="width:700px; height:600px;" alt="" /></span>
 
 									<p>Posted: {{ recipe.created }}</p>
 									<p>Author: {{ recipe.user }}</p>
