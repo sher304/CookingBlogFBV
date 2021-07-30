@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+						<section id="banner">
+									<div class="content">
+										<header>
+											<h1>{{ request.user.username }}</h1>
+<!--											<p>A free and fully responsive site template</p>-->
+										</header>
+                                        <p>{{ request.user }}</p>
+                                        <p>{{ request.user.date_joined }}</p>
+										{% if request.user.recipes %}
+
+										<h3>My recipes: </h3>
+											<p>{{ request.user.recipes }}</p>
+										{% else %}
+											<h3>My recipes: </h3>
+											<p>No recipes!</p>
+										{% endif %}
+
+									</div>
+									<span class="image object">
+										{% if request.user.image %}
+										<img src="{{ request.user.image.url }}" alt="" />
+										{% else %}
+										<h3>No Photo</h3>
+										{% endif %}
+									</span>
+								</section>
+{% endblock %}
+

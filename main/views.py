@@ -1,8 +1,9 @@
 from datetime import timedelta
 
+from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.forms import modelformset_factory
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.urls import reverse_lazy
@@ -11,6 +12,7 @@ from django.views.generic import ListView, DetailView, DeleteView
 
 from .forms import RecipeForm, ImageForm
 from .models import *
+from .permissions import UserHasPermissionMixin
 
 #
 # def index(request):
@@ -28,8 +30,12 @@ class MainPageView(ListView):
     def get_template_names(self):
         template_name = super(MainPageView, self).get_template_names()
         search = self.request.GET.get('q')
+        filter = self.request.GET.get('filter')
+
         if search:
             template_name = 'search.html'
+        elif filter:
+            template_name = 'new.html'
         return template_name
 
 
@@ -68,12 +74,13 @@ class CategoryDetailView(DetailView):
         context['recipes'] = Recipe.objects.filter(category_id=self.slug)
         return context
 
-
-def recipe_detail(request, pk):
-    recipe = get_object_or_404(Recipe, pk=pk)
-    image = recipe.get_image
-    images = recipe.images.exclude(id=image.id)
-    return render(request, 'recipe_detail.html', locals())
+#
+# def recipe_detail(request, pk):
+#     recipe = get_object_or_404(Recipe, pk=pk)
+#     image = recipe.get_image
+#     images = recipe.images.exclude(id=image.id)
+#     print(images)
+#     return render(request, 'recipe_detail.html', {'image': image, 'images': images, 'recipe': recipe})
 
 
 class RecipeDetailView(DetailView):
@@ -87,7 +94,7 @@ class RecipeDetailView(DetailView):
         context['images'] = self.get_object().images.exclude(id=image.id)
         return context
 
-
+@login_required(login_url='login')
 def add_recipe(request):
     ImageFormSet = modelformset_factory(Image, form=ImageForm, max_num=5)
     if request.method == 'POST':
@@ -95,7 +102,9 @@ def add_recipe(request):
         formset = ImageFormSet(request.POST, request.FILES, queryset=Image.objects.none())
         print(formset)
         if recipe_form.is_valid() and formset.is_valid():
-            recipe = recipe_form.save()
+            recipe = recipe_form.save(commit=False)
+            recipe.user = request.user
+            recipe.save()
 
             for form in formset.cleaned_data:
                 image = form['image']
@@ -109,18 +118,21 @@ def add_recipe(request):
 
 def update_recipe(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
-    ImageFormSet = modelformset_factory(Image, form=ImageForm, validate_max=5)
-    recipe_form = RecipeForm(request.POST or None, instance=recipe)
-    formset = ImageFormSet(request.POST or None, request.FILES or None, queryset=Image.objects.filter(recipe=recipe))
-    if recipe_form.is_valid() and formset.is_valid():
-        recipe = recipe_form.save()
-        for form in formset:
-            image = form.save(commit=False)
-            image.recipe = recipe
-            image.save()
-        return redirect(recipe.get_absolute_url())
-    return render(request, 'update-recipe.html', locals() )
+    if request.user == recipe.user:
+        ImageFormSet = modelformset_factory(Image, form=ImageForm, validate_max=5)
+        recipe_form = RecipeForm(request.POST or None, instance=recipe)
+        formset = ImageFormSet(request.POST or None, request.FILES or None, queryset=Image.objects.filter(recipe=recipe))
+        if recipe_form.is_valid() and formset.is_valid():
+            recipe = recipe_form.save()
 
+            for form in formset:
+                image = form.save(commit=False)
+                image.recipe = recipe
+                image.save()
+            return redirect(recipe.get_absolute_url())
+        return render(request, 'update-recipe.html', locals() )
+    else:
+        return HttpResponse('<h1>403 Forbidden</h1>')
 
 # def delete_recipe(request, pk):
 #     recipe = get_object_or_404(Recipe, pk=pk)
@@ -132,7 +144,7 @@ def update_recipe(request, pk):
 #
 #
 
-class DeleteRecipeView(DeleteView):
+class DeleteRecipeView(UserHasPermissionMixin, DeleteView):
     model = Recipe
     template_name = 'delete-recipe.html'
     success_url = reverse_lazy('home')

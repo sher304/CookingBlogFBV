@@ -26,11 +26,12 @@
 								<header id="header">
 									<a href="index.html" class="logo"><strong>Editorial</strong> by HTML5 UP</a>
 									<ul class="icons">
-										<li><a href="#" class="icon brands fa-twitter"><span class="label">Twitter</span></a></li>
-										<li><a href="#" class="icon brands fa-facebook-f"><span class="label">Facebook</span></a></li>
-										<li><a href="#" class="icon brands fa-snapchat-ghost"><span class="label">Snapchat</span></a></li>
-										<li><a href="#" class="icon brands fa-instagram"><span class="label">Instagram</span></a></li>
-										<li><a href="#" class="icon brands fa-medium-m"><span class="label">Medium</span></a></li>
+										{% if not  request.user.is_authenticated %}
+											<a href="{% url 'register' %}"><i class="far fa-registered"></i></a>
+											<a href="{% url 'login' %}"><i class="far fa-user-circle" aria-hidden="true"></i></a>
+										{% else %}
+										<a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i></a>
+										{% endif %}
 									</ul>
 								</header>
 							{%block content%} {%endblock%}
@@ -54,6 +55,9 @@
 									</header>
 									<ul>
 										<li><a href="{% url 'home' %}">Homepage</a></li>
+										{% if request.user.is_authenticated  %}
+										<li><a href="{% url 'profile' %}">My profile</a></li>
+										{% endif %}
 										<li>
 											<span class="opener">Submenu</span>
 											<ul>
@@ -63,7 +67,8 @@
 											</ul>
 										</li>
 										<li><a href="{% url 'add-recipe' %}">Add my own recipe</a></li>
-										<li><a href="{% url 'home' %}">New Recipes</a></li>
+										<li><a href="{% url 'home' %}?filter=new">New Recipes</a></li>
+
 
 									</ul>
 								</nav>
@@ -101,4 +106,3 @@
 
 	</body>
 </html>
-
